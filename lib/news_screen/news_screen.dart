@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:news/api/api_manager.dart';
 import 'package:news/api/models/category.dart';
-import 'package:news/news_screen/tabs_widget.dart';
+import 'package:news/tabs/tabs_widget.dart';
 
 class NewsScreen extends StatefulWidget {
   NewsCategory category;
