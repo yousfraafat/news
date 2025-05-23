@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:news/api/api_manager.dart';
 import 'package:news/api/models/Source.dart';
+import 'package:news/common/ui_state.dart';
 import 'package:news/news_screen/news_item.dart';
+import 'package:news/view_models/news_view_model.dart';
+import 'package:provider/provider.dart';
 
+import '../common/ui_error_widget.dart';
 import 'news_details_screen.dart';
 
 class NewsWidget extends StatefulWidget {
@@ -16,52 +19,81 @@ class NewsWidget extends StatefulWidget {
 }
 
 class _NewsWidgetState extends State<NewsWidget> {
+  var viewModel = NewsViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    viewModel.getNewsList(widget.source.id ?? '', widget.searchQuery ?? '');
+  }
+
+  @override
+  void didUpdateWidget(covariant NewsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source != widget.source ||
+        oldWidget.searchQuery != widget.searchQuery) {
+      viewModel.getNewsList(widget.source.id ?? '', widget.searchQuery ?? '');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: ApiManager.getNewsBySourceId(
-        widget.source.id ?? '',
-        query: widget.searchQuery,
-      ),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Column(
-            children: [
-              Text('something went wrong'),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {});
-                },
-                child: Text('try again'),
-              ),
-            ],
-          );
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasData) {
-          var newsList = snapshot.data?.articles;
-          return ListView.separated(
-            itemBuilder: (context, index) {
-              return InkWell(
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    NewsDetailsScreen.routeName,
-                    arguments: snapshot.data?.articles?[index],
+    return ChangeNotifierProvider.value(
+      value: viewModel,
+      builder: (context, child) {
+        return Consumer<NewsViewModel>(
+          builder: (context, viewModel, child) {
+            var state = viewModel.state;
+            switch (state) {
+              case SuccessState():
+                {
+                  return ListView.separated(
+                    itemBuilder: (context, index) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            NewsDetailsScreen.routeName,
+                            arguments: state.data[index],
+                          );
+                        },
+                        child: NewsItem(state.data[index]),
+                      );
+                    },
+                    separatorBuilder: (context, index) {
+                      return SizedBox();
+                    },
+                    itemCount: state.data.length ?? 0,
                   );
-                },
-                child: NewsItem(snapshot.data?.articles?[index]),
-              );
-            },
-            separatorBuilder: (context, index) {
-              return SizedBox();
-            },
-            itemCount: newsList?.length ?? 0,
-          );
-        }
-        return Text('no news to show');
+                }
+              case LoadingState():
+                {
+                  return Center(child: CircularProgressIndicator());
+                }
+              case ErrorState():
+                {
+                  return UiErrorWidget(
+                    error: state.error,
+                    serverError: state.serverError,
+                    retryPress:
+                        () => viewModel.getNewsList(
+                          widget.source.id ?? '',
+                          widget.searchQuery ?? '',
+                        ),
+                  );
+                }
+              case NoDataState():
+                {
+                  return Center(
+                    child: Text(
+                      'no news to show',
+                      style: TextStyle(fontSize: 25),
+                    ),
+                  );
+                }
+            }
+          },
+        );
       },
     );
   }

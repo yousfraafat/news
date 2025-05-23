@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:news/api/models/category.dart';
 import 'package:news/categories_screen/categories_screen.dart';
 import 'package:news/home_screen/home_drawer.dart';
-import 'package:news/api/models/category.dart';
 import 'package:news/news_screen/news_screen.dart';
 import 'package:news/settings_screen/settings_screen.dart';
 
@@ -61,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () {
                           setState(() {
                             isSearching = false;
+                            searchController.text = '';
                             searchQuery = '';
                           });
                         },
